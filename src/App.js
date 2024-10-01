@@ -29,16 +29,19 @@ function App() {
   useEffect(() => {
     fetchJobs();
   }, []);
-
+  
   const fetchJobs = async () => {
     try {
       const response = await axios.get('/api/jobs');
+      console.log('API response:', response.data);
       setJobs(response.data);
     } catch (error) {
       console.error('Error fetching jobs:', error);
-      setJobs([]); // Set to empty array if there's an error
+      setJobs([]);
     }
   };
+
+
 
   const handleSubmitOffer = async (jobId) => {
     try {
