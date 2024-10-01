@@ -32,14 +32,19 @@ function App() {
   useEffect(() => {
     fetchJobs();
   }, []);
-
+  
   const fetchJobs = async () => {
     try {
       setLoading(true);
       const response = await axios.get('/api/jobs');
-      console.log('API response:', response.data);
-      setJobs(Array.isArray(response.data) ? response.data : []);
-      setError(null);
+      console.log('API response:', response);
+      if (response.data && Array.isArray(response.data)) {
+        setJobs(response.data);
+      } else {
+        console.error('Invalid data format:', response.data);
+        setJobs([]);
+        setError('Formato de datos inválido recibido del servidor.');
+      }
     } catch (error) {
       console.error('Error fetching jobs:', error);
       setJobs([]);
