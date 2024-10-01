@@ -36,6 +36,7 @@ function App() {
       setJobs(response.data);
     } catch (error) {
       console.error('Error fetching jobs:', error);
+      setJobs([]); // Set to empty array if there's an error
     }
   };
 
@@ -54,7 +55,9 @@ function App() {
   };
 
   const filteredJobs = jobs.filter(job =>
-    job.skills.some(skill => skill.toLowerCase().includes(filterSkill.toLowerCase()))
+    job.skills && Array.isArray(job.skills) && job.skills.some(skill => 
+      skill.toLowerCase().includes(filterSkill.toLowerCase())
+    )
   );
 
   const handleOpenModal = (job) => {
@@ -99,7 +102,7 @@ function App() {
               )}
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Habilidades necesarias: {job.skills.join(', ')}
+              Habilidades necesarias: {job.skills && Array.isArray(job.skills) ? job.skills.join(', ') : 'No especificadas'}
             </Typography>
           </CardContent>
           <CardActions>
@@ -124,7 +127,7 @@ function App() {
               <Typography variant="h6">{selectedJob.title}</Typography>
               <Typography variant="body2">{selectedJob.description}</Typography>
               <Typography variant="body2" color="textSecondary">
-                Habilidades necesarias: {selectedJob.skills.join(', ')}
+                Habilidades necesarias: {selectedJob.skills && Array.isArray(selectedJob.skills) ? selectedJob.skills.join(', ') : 'No especificadas'}
               </Typography>
 
               <form onSubmit={(e) => { e.preventDefault(); handleSubmitOffer(selectedJob.id); }} className="form">
