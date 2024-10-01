@@ -4,6 +4,7 @@ import axios from 'axios';
 import './App.css';
 
 const timeAgo = (date) => {
+  if (!date) return 'Fecha desconocida';
   const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
   let interval = Math.floor(seconds / 31536000);
   if (interval > 1) return `${interval} años`;
@@ -25,23 +26,28 @@ function App() {
   const [filterSkill, setFilterSkill] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchJobs();
   }, []);
-  
+
   const fetchJobs = async () => {
     try {
+      setLoading(true);
       const response = await axios.get('/api/jobs');
       console.log('API response:', response.data);
-      setJobs(response.data);
+      setJobs(Array.isArray(response.data) ? response.data : []);
+      setError(null);
     } catch (error) {
       console.error('Error fetching jobs:', error);
       setJobs([]);
+      setError('Error al cargar los trabajos. Por favor, intenta de nuevo más tarde.');
+    } finally {
+      setLoading(false);
     }
   };
-
-
 
   const handleSubmitOffer = async (jobId) => {
     try {
@@ -54,12 +60,13 @@ function App() {
       handleCloseModal();
     } catch (error) {
       console.error('Error submitting application:', error);
+      alert('Error al enviar la aplicación. Por favor, intenta de nuevo.');
     }
   };
 
   const filteredJobs = jobs.filter(job =>
-    job.skills && Array.isArray(job.skills) && job.skills.some(skill => 
-      skill.toLowerCase().includes(filterSkill.toLowerCase())
+    job && job.skills && Array.isArray(job.skills) && job.skills.some(skill => 
+      skill && typeof skill === 'string' && skill.toLowerCase().includes(filterSkill.toLowerCase())
     )
   );
 
@@ -75,6 +82,9 @@ function App() {
     setOfferDescription('');
   };
 
+  if (loading) return <div>Cargando trabajos...</div>;
+  if (error) return <div>{error}</div>;
+
   return (
     <div className="container">
       <Typography variant="h4" gutterBottom>
@@ -89,32 +99,40 @@ function App() {
         style={{ marginBottom: '20px' }}
       />
 
-      {filteredJobs.map((job) => (
-        <Card key={job.id} className="card">
-          <CardHeader title={job.title} subheader={`Costo estimado: $${job.cost} | Publicado ${timeAgo(job.posted_at)}`} />
-          <CardContent>
-            <Typography variant="body2">
-              {job.description.substring(0, 300)}{job.description.length > 300 && '...'} 
-              {job.description.length > 300 && (
-                <span
-                  onClick={() => handleOpenModal(job)}
-                  style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  Ver más
-                </span>
-              )}
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              Habilidades necesarias: {job.skills && Array.isArray(job.skills) ? job.skills.join(', ') : 'No especificadas'}
-            </Typography>
-          </CardContent>
-          <CardActions>
-            <Button variant="contained" onClick={() => handleOpenModal(job)}>
-              Postularse
-            </Button>
-          </CardActions>
-        </Card>
-      ))}
+      {filteredJobs.length === 0 ? (
+        <Typography>No se encontraron trabajos que coincidan con la búsqueda.</Typography>
+      ) : (
+        filteredJobs.map((job) => (
+          <Card key={job.id} className="card">
+            <CardHeader 
+              title={job.title || 'Título no disponible'} 
+              subheader={`Costo estimado: $${job.cost || 'No especificado'} | Publicado ${timeAgo(job.posted_at)}`} 
+            />
+            <CardContent>
+              <Typography variant="body2">
+                {(job.description || '').substring(0, 300)}
+                {(job.description || '').length > 300 && '...'} 
+                {(job.description || '').length > 300 && (
+                  <span
+                    onClick={() => handleOpenModal(job)}
+                    style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Ver más
+                  </span>
+                )}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Habilidades necesarias: {job.skills && Array.isArray(job.skills) ? job.skills.join(', ') : 'No especificadas'}
+              </Typography>
+            </CardContent>
+            <CardActions>
+              <Button variant="contained" onClick={() => handleOpenModal(job)}>
+                Postularse
+              </Button>
+            </CardActions>
+          </Card>
+        ))
+      )}
 
       <Modal open={modalOpen} onClose={handleCloseModal}>
         <div className="modal">
@@ -127,8 +145,8 @@ function App() {
 
           {selectedJob && (
             <>
-              <Typography variant="h6">{selectedJob.title}</Typography>
-              <Typography variant="body2">{selectedJob.description}</Typography>
+              <Typography variant="h6">{selectedJob.title || 'Título no disponible'}</Typography>
+              <Typography variant="body2">{selectedJob.description || 'Descripción no disponible'}</Typography>
               <Typography variant="body2" color="textSecondary">
                 Habilidades necesarias: {selectedJob.skills && Array.isArray(selectedJob.skills) ? selectedJob.skills.join(', ') : 'No especificadas'}
               </Typography>
